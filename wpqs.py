@@ -72,7 +72,6 @@ def update_answered_pqs(tmp = '/Users/ben/Documents/blog/UKParliament/tmp'):
         pqs['dateAnswered'] = pd.to_datetime(pqs.dateAnswered)
         pqs = pqs.drop_duplicates()
         no_pqs = pqs.shape[0]
-        print(pqs.shape)
         start_date = pqs.dateAnswered.max()#.strftime("%Y-%m-%d")
         # start_date = pd.to_datetime('2022-01-15')
         print("File pqs.csv found with {n} WPQs in, last updated {d}. Proceeding to update.".format(n=no_pqs, d=start_date.strftime("%Y-%m-%d")))
@@ -96,23 +95,21 @@ def update_answered_pqs(tmp = '/Users/ben/Documents/blog/UKParliament/tmp'):
         n_pqs['dateAnswered'] = pd.to_datetime(n_pqs.dateAnswered)
         n_pqs = n_pqs.drop_duplicates()
 
-        old_length = pqs.shape[0]
-        print(old_length)
-        print(n_pqs.shape)
-
-
         new_pqs = pd.concat([pqs, n_pqs])
         new_pqs['dateAnswered'] = pd.to_datetime(new_pqs.dateAnswered)
         new_pqs = new_pqs.drop_duplicates()
-        new_length = new_pqs.shape[0]
-        print(new_length)
 
-        pqs_added = new_length - old_length
-        print("Downloaded {n} WPQs, which have been add to the archive.".format(n=pqs_added))
         new_pqs.to_csv(Path(tmp+'/pqs.csv'), index=False, index_label=False)
-        test = pd.read_csv(Path(tmp+'/pqs.csv'))
-        print(test.shape)
-        print("Test shape above")
+
+        # This is an embarrassingly bad fix for a problem with dropping duplicates. 
+        # Essentially, mixed datatypes prevented drop_duplicates() from working... that meant that I couldn't get an accurate read on how many extra PQs were being downloaded. 
+        # This is a poor fix... oh well. 
+        reform = pd.read_csv(Path(tmp+'/pqs.csv'))
+        reform = reform.drop_duplicates()
+        reform.to_csv(Path(tmp+'/pqs.csv'), index=False, index_label=False)
+        new_length = reform.shape[0]
+        pqs_added = new_length - no_pqs
+        print("Downloaded {n} WPQs, which have been add to the archive.".format(n=pqs_added))
         return new_pqs
 
 
@@ -135,10 +132,11 @@ def update_answered_pqs(tmp = '/Users/ben/Documents/blog/UKParliament/tmp'):
 
         # Convert to DataFrame
         pqs = pd.DataFrame(master_wpqs)
+        pqs['dateAnswered'] = pd.to_datetime(pqs.dateAnswered)
         pqs.drop(columns=['attachments', 'groupedQuestions', 'groupedQuestionsDates'], inplace=True)
-        # pqs.drop_duplicates(inplace=True)
+        pqs.drop_duplicates(inplace=True)
         pqs.to_csv(Path(tmp+'/pqs.csv'), index=False, index_label=False)
-        print('Full archive downloaded up to {d}. To get WPQs tabled since that date, call this function once more.'.format(d=pqs.dateTabled.max().strftime('%Y-%m-%d')))
+        print('Full archive downloaded up to {d}. To get WPQs tabled since that date, call this function once more.'.format(d=pqs.dateAnswered.max().strftime('%Y-%m-%d')))
         return pqs
     
     
@@ -279,8 +277,9 @@ def download_ua_pqs(tmp = '/Users/ben/Documents/blog/pqs/tmp'):
                 'dateHoldingAnswer',
                 'attachmentCount',
             ], inplace=True)
-        # pqs.drop_duplicates(inplace=True)
+
         pqs['dateTabled'] = pd.to_datetime(pqs.dateTabled)
+        pqs.drop_duplicates(inplace=True)
         pqs.to_csv(Path(tmp+'/ua_pqs.csv'), index=False, index_label=False)
         print('Full archive downloaded up to {d}. To get WPQs tabled since that date, call this function once more.'.format(d=pqs.dateTabled.max().strftime('%Y-%m-%d')))
         return pqs

@@ -41,7 +41,7 @@ def get_wpqs_by_answered(answeredWhenFrom, answeredWhenTo, answered=None):
             # 'answered': 'Unanswered'
             }
 
-    headers = {'Accept': 'application/json'}
+    headers = {'Accept': 'text/plain'}
 
 
     r = requests.get(url=url, params = params, headers=headers)
@@ -164,7 +164,7 @@ def get_wpqs_by_date(tabledWhenFrom, tabledWhenTo):
         'answered': 'Any'
         }
 
-    headers = {'Accept': 'application/json'}
+    headers = {'Accept': 'text/plain'}
 
     r = requests.get(url=url, params = params, headers=headers)
     data = [x['value'] for x in r.json()['results']]

@@ -10,16 +10,26 @@ def initialise_dir():
     if not CHECK_FOLDER:
         os.makedirs(MYDIR)
         print('Created a temporary folder to hold the data')
+        return MYDIR, True
     else:
         print(MYDIR, "folder already exists.")
+        return MYDIR, False
 
     return MYDIR
 
 if __name__ == '__main__':
     # Sort out filesystem
-    dir = initialise_dir()
+    dir, t = initialise_dir()
     # update archive of answered WPQs. Each function called 
     update_answered_pqs(tmp=dir)
-    update_answered_pqs(tmp=dir)
+    if t:
+        print('Running again to make sure everything is up-to-date.')
+        update_answered_pqs(tmp=dir)
+    else:
+        pass
     download_ua_pqs(tmp=dir)
-    download_ua_pqs(tmp=dir)
+    if t:
+        print('Running again to make sure everything is up-to-date.')
+        download_ua_pqs(tmp=dir)
+    else:
+        pass

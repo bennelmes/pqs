@@ -74,7 +74,7 @@ def update_answered_pqs(tmp = '/Users/ben/Documents/blog/UKParliament/tmp'):
         no_pqs = pqs.shape[0]
         start_date = pqs.dateAnswered.max()#.strftime("%Y-%m-%d")
         # start_date = pd.to_datetime('2022-01-15')
-        print("File pqs.csv found with {n} WPQs in, last updated {d}. Proceeding to update.".format(n=no_pqs, d=start_date.strftime("%Y-%m-%d")))
+        print("File pqs.csv found with {n} answered PQs in, last updated {d}. Looking for new PQs...".format(n=no_pqs, d=start_date.strftime("%Y-%m-%d")))
 
         date_list = pd.date_range(start_date, today, freq='D').strftime('%Y-%m-%d').tolist()
         # print(date_list)
@@ -109,14 +109,14 @@ def update_answered_pqs(tmp = '/Users/ben/Documents/blog/UKParliament/tmp'):
         reform.to_csv(Path(tmp+'/pqs.csv'), index=False, index_label=False)
         new_length = reform.shape[0]
         pqs_added = new_length - no_pqs
-        print("Downloaded {n} WPQs, which have been add to the archive.".format(n=pqs_added))
+        print("Downloaded {n} new PQs, which have been add to the archive.".format(n=pqs_added))
         return new_pqs
 
 
     # Now handle situations where there's no file. 
     else:
         # If there's no file already downloaded, then we'll download everything since the beginning of time (May 2014, according to Parliament's API)
-        print("No file found, proceeding with download of full archive. Sit tight, this can take about 20 minutes!")
+        print("No PQs archive found. Downloading full archive from scratch. Sit tight, this can take about 20 minutes!")
         min_date_list = pd.date_range(start_date, today, freq='MS').strftime('%Y-%m-%d').tolist()
         max_date_list = pd.date_range(start_date, next_month, freq='M').strftime('%Y-%m-%d').tolist()
         # max_date_list.append(next_month_str)
@@ -136,7 +136,7 @@ def update_answered_pqs(tmp = '/Users/ben/Documents/blog/UKParliament/tmp'):
         pqs.drop(columns=['attachments', 'groupedQuestions', 'groupedQuestionsDates'], inplace=True)
         pqs.drop_duplicates(inplace=True)
         pqs.to_csv(Path(tmp+'/pqs.csv'), index=False, index_label=False)
-        print('Full archive downloaded up to {d}. To get WPQs tabled since that date, call this function once more.'.format(d=pqs.dateAnswered.max().strftime('%Y-%m-%d')))
+        print('Full archive downloaded up to {d}. To ensure your archive is completely up-to-date, it is recommended to call this function once more.'.format(d=pqs.dateAnswered.max().strftime('%Y-%m-%d')))
         return pqs
     
     
@@ -161,6 +161,7 @@ def get_wpqs_by_date(tabledWhenFrom, tabledWhenTo):
         'tabledWhenFrom': tabledWhenFrom,
         'tabledWhenTo': tabledWhenTo,
         'take':1000000,
+        'answered': 'Any'
         }
 
     headers = {'Accept': 'application/json'}
@@ -189,7 +190,7 @@ def download_ua_pqs(tmp = '/Users/ben/Documents/blog/pqs/tmp'):
         pqs['dateTabled'] = pd.to_datetime(pqs.dateTabled)
         start_date = pqs.dateTabled.max()#.strftime("%Y-%m-%d")
         # start_date = pd.to_datetime('2022-01-15')
-        print("File ua_pqs.csv found with {n} WPQs in, last updated {d}. Proceeding to update.".format(n=no_pqs, d=start_date.strftime("%Y-%m-%d")))
+        print("File ua_pqs.csv found with {n} unanswered PQs in, last updated {d}. Looking for new PQs...".format(n=no_pqs, d=start_date.strftime("%Y-%m-%d")))
 
         date_list = pd.date_range(start_date, today, freq='D').strftime('%Y-%m-%d').tolist()
         
@@ -234,9 +235,9 @@ def download_ua_pqs(tmp = '/Users/ben/Documents/blog/pqs/tmp'):
         new_pqs = new_pqs.drop_duplicates()
         new_length = new_pqs.shape[0]
         pqs_added = new_length - old_length
-        print("Downloaded {n} WPQs, which have been add to the archive.".format(n=pqs_added))
+        print("Downloaded {n} new PQs, which have been add to the archive.".format(n=pqs_added))
         new_pqs.to_csv(Path(tmp+'/ua_pqs.csv'), index=False, index_label=False)
-        print("All done, be on your merry way.")
+        # print("All done, be on your merry way.")
         return new_pqs
 
 
@@ -279,7 +280,7 @@ def download_ua_pqs(tmp = '/Users/ben/Documents/blog/pqs/tmp'):
             ], inplace=True)
 
         pqs['dateTabled'] = pd.to_datetime(pqs.dateTabled)
-        pqs.drop_duplicates(inplace=True)
+        # pqs.drop_duplicates(inplace=True)
         pqs.to_csv(Path(tmp+'/ua_pqs.csv'), index=False, index_label=False)
-        print('Full archive downloaded up to {d}. To get WPQs tabled since that date, call this function once more.'.format(d=pqs.dateTabled.max().strftime('%Y-%m-%d')))
+        print('Full archive downloaded up to {d}. To ensure your archive is up-to-date, it is recommended to call this function once more.'.format(d=pqs.dateTabled.max().strftime('%Y-%m-%d')))
         return pqs

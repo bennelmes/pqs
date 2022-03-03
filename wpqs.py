@@ -280,6 +280,7 @@ def download_ua_pqs(tmp = '/Users/ben/Documents/blog/pqs/tmp'):
             ], inplace=True)
 
         pqs['dateTabled'] = pd.to_datetime(pqs.dateTabled)
+        pqs['dateTabled'] = pqs.dateTabled.apply(lambda x: today if x > today else x)
         # pqs.drop_duplicates(inplace=True)
         pqs.to_csv(Path(tmp+'/ua_pqs.csv'), index=False, index_label=False)
         print('Full archive downloaded up to {d}. To ensure your archive is up-to-date, it is recommended to call this function once more.'.format(d=pqs.dateTabled.max().strftime('%Y-%m-%d')))

@@ -5,6 +5,8 @@ from tqdm import tqdm
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from pathlib import Path
+from tqdm import tqdm
+tqdm.pandas()
 
 # A function that will download WPQs for a given range of dates. (NB this will crash if the date range is too wide)
 def get_wpqs_by_answered(answeredWhenFrom, answeredWhenTo, answered=None):
@@ -104,13 +106,13 @@ def update_answered_pqs(tmp = '/Users/ben/Documents/blog/UKParliament/tmp'):
         # This is an embarrassingly bad fix for a problem with dropping duplicates. 
         # Essentially, mixed datatypes prevented drop_duplicates() from working... that meant that I couldn't get an accurate read on how many extra PQs were being downloaded. 
         # This is a poor fix... oh well. 
-        reform = pd.read_csv(Path(tmp+'/pqs.csv'))
-        reform = reform.drop_duplicates()
-        reform.to_csv(Path(tmp+'/pqs.csv'), index=False, index_label=False)
-        new_length = reform.shape[0]
+        pqs = pd.read_csv(Path(tmp+'/pqs.csv'))
+        pqs = pqs.drop_duplicates()
+        pqs.to_csv(Path(tmp+'/pqs.csv'), index=False, index_label=False)
+        new_length = pqs.shape[0]
         pqs_added = new_length - no_pqs
-        print("Downloaded {n} new PQs, which have been add to the archive.".format(n=pqs_added))
-        return new_pqs
+        print("Downloaded {n} new PQs, which have been added to the archive.".format(n=pqs_added))
+
 
 
     # Now handle situations where there's no file. 
@@ -137,8 +139,39 @@ def update_answered_pqs(tmp = '/Users/ben/Documents/blog/UKParliament/tmp'):
         pqs.drop_duplicates(inplace=True)
         pqs.to_csv(Path(tmp+'/pqs.csv'), index=False, index_label=False)
         print('Full archive downloaded up to {d}. To ensure your archive is completely up-to-date, it is recommended to call this function once more.'.format(d=pqs.dateAnswered.max().strftime('%Y-%m-%d')))
-        return pqs
-    
+
+    print('Cleaning data...')
+
+    wpqs = pd.read_csv(Path(tmp+'/pqs.csv'))
+    wpqs['dateTabled'] = pd.to_datetime(wpqs.dateTabled)
+    wpqs['heading'] = wpqs.heading.fillna('')
+    # wpqs = wpqs[['id', 'askingMemberId', 'askingMember', 'house', 'dateTabled', 'questionText', 'answeringBodyName', 'heading']]
+
+    # Populate a column with party appreviation in the WPQs database, if the source data is available. 
+    try:
+        active_p = pd.read_csv(Path(tmp+'/active_members.csv'))
+        former_p = pd.read_csv(Path(tmp+'/former_members.csv'))
+
+        all_p = pd.concat([active_p, former_p])
+        all_p = all_p[['id', 'nameListAs', 'gender', 'latestPartyabbreviation']]
+
+        id_party_dict = dict(zip(all_p.id, all_p.latestPartyabbreviation))
+        wpqs['latestPartyabbreviation'] = wpqs.askingMemberId.progress_apply(lambda x: id_party_dict[x] if x in id_party_dict.keys() else 'n/a')
+    except:
+        pass
+
+    # Make some of the string fields lower case to improve comparability and searchability
+    wpqs['heading'] = wpqs.heading.progress_apply(lambda x: x.lower())
+    wpqs['questionText'] = wpqs.questionText.progress_apply(lambda x: x.lower())
+
+    # Sometime the heading is a generic topic, other times it's specified by a ":" symbol. We'll extract this into a 'topic' column.
+    wpqs['topic'] = wpqs.heading.progress_apply(lambda x: x.split(':')[0])
+
+    wpqs['year_month'] = wpqs.dateTabled.dt.to_period('M')
+    wpqs.to_csv('pqs_cleaned.csv')
+    print('Cleaning done. Output saved in ')
+
+    return wpqs
     
     
 """
@@ -235,10 +268,9 @@ def download_ua_pqs(tmp = '/Users/ben/Documents/blog/pqs/tmp'):
         new_pqs = new_pqs.drop_duplicates()
         new_length = new_pqs.shape[0]
         pqs_added = new_length - old_length
-        print("Downloaded {n} new PQs, which have been add to the archive.".format(n=pqs_added))
+        print("Downloaded {n} new PQs, which have been added to the archive.".format(n=pqs_added))
         new_pqs.to_csv(Path(tmp+'/ua_pqs.csv'), index=False, index_label=False)
         # print("All done, be on your merry way.")
-        return new_pqs
 
 
     # Now handle situations where there's no file. 
@@ -284,4 +316,37 @@ def download_ua_pqs(tmp = '/Users/ben/Documents/blog/pqs/tmp'):
         # pqs.drop_duplicates(inplace=True)
         pqs.to_csv(Path(tmp+'/ua_pqs.csv'), index=False, index_label=False)
         print('Full archive downloaded up to {d}. To ensure your archive is up-to-date, it is recommended to call this function once more.'.format(d=pqs.dateTabled.max().strftime('%Y-%m-%d')))
-        return pqs
+
+
+    print('Cleaning data...')
+
+    wpqs = pd.read_csv(Path(tmp+'/ua_pqs.csv'))
+    wpqs['dateTabled'] = pd.to_datetime(wpqs.dateTabled)
+    wpqs['heading'] = wpqs.heading.fillna('')
+    # wpqs = wpqs[['id', 'askingMemberId', 'askingMember', 'house', 'dateTabled', 'questionText', 'answeringBodyName', 'heading']]
+
+    # Populate a column with party appreviation in the WPQs database, if the source data is available. 
+    try:
+        active_p = pd.read_csv(Path(tmp+'/active_members.csv'))
+        former_p = pd.read_csv(Path(tmp+'/former_members.csv'))
+
+        all_p = pd.concat([active_p, former_p])
+        all_p = all_p[['id', 'nameListAs', 'gender', 'latestPartyabbreviation']]
+
+        id_party_dict = dict(zip(all_p.id, all_p.latestPartyabbreviation))
+        wpqs['latestPartyabbreviation'] = wpqs.askingMemberId.progress_apply(lambda x: id_party_dict[x] if x in id_party_dict.keys() else 'n/a')
+    except:
+        pass
+
+    # Make some of the string fields lower case to improve comparability and searchability
+    wpqs['heading'] = wpqs.heading.progress_apply(lambda x: x.lower())
+    wpqs['questionText'] = wpqs.questionText.progress_apply(lambda x: x.lower())
+
+    # Sometime the heading is a generic topic, other times it's specified by a ":" symbol. We'll extract this into a 'topic' column.
+    wpqs['topic'] = wpqs.heading.progress_apply(lambda x: x.split(':')[0])
+
+    wpqs['year_month'] = wpqs.dateTabled.dt.to_period('M')
+    wpqs.to_csv('ua_pqs_cleaned.csv')
+    print('Cleaning done. Output saved in ')
+
+    return wpqs

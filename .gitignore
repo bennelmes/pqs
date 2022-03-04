@@ -1,3 +1,6 @@
 *.csv
 results/
+*.geojson
+pq_plots/*
+
 

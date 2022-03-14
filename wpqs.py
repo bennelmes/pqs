@@ -6,7 +6,40 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from pathlib import Path
 from tqdm import tqdm
+import re
 tqdm.pandas()
+
+# A function to clean up question text
+def question_cleaner(question):
+    q = re.sub(r',(?=\S)|:', ', ', question)
+    q = q.replace("to ask her majesty's government ", "to ask her majesty's government, ").replace("to ask her majesty’s government ", "to ask her majesty's government, ")
+    q = q.replace(', and', ' and').replace('foreign, commonwealth and development affairs', 'foreign commonwealth and development affairs').replace('digital, culture, media', 'digital culture media').replace('business, energy and industrial', 'business energy and industrial')
+    q = q.replace('levelling up, housing and', 'levelling up housing and').replace('environment, food and rural affairs', 'environment food and rural affairs').replace('culture, media and sport', 'culture media and sport').replace('business, innovation and skills', 'business innovation and skills')
+    q = q.replace('digital, culture, media and sport', 'digital culture media and sport')
+    q = q.replace('housing, communities and local government', 'housing communities and local government')
+    q = q.replace(', representing the church commissioners', ' representing the church commissioners, ') 
+    q = q.replace('to ask the chairman of committees ', 'to ask the chairman of committees, ')
+    q = q.replace('to ask the leader of the house ', 'to ask the leader of the house, ')
+    q = q.replace("to ask her majesty’s government", "to ask her majesty's government, ")
+    q = q.replace("to ask the senior deputy speaker ", "to ask the senior deputy speaker, ")
+    q = q.replace("her majesty's government ", "her majesty's government, ")
+    q = q.replace("to ask the secretary of state for education ", "to ask the secretary of state for education, ")
+    q = q.replace("to ask the secretary of state for defence ", "to ask the secretary of state for defence, ")
+    q = q.replace("to ask the secretary of state for work and pensions ", "to ask the secretary of state for work and pensions, ")
+    q = q.replace("to ask the secretary of state for environment food and rural affairs ", "to ask the secretary of state for environment food and rural affairs, ")
+    q = q.replace("to ask the secretary of state for health ", "to ask the secretary of state for health, ")
+    q = q.replace("foreign and commonwealth affairs ", "foreign and commonwealth affairs, ")
+    q = q.replace("foreign commonwealth and development affairs ", "foreign commonwealth and development affairs, ")
+    q = q.replace("the senior deputy speaker ", "the senior deputy speaker, ")
+    q = q.replace("secretary of state for the home department,", "secretary of state for the home department, ")
+    q = q.replace("to ask mr chancellor of the exchequer ", "to ask mr chancellor of the exchequer, ")
+    q = q.replace("to ask the minister of the cabinet office ", "to ask the minister of the cabinet office, ")
+    q = q.replace("to ask the minister for the cabinet office ", "to ask the minister for the cabinet office, ")
+    q = q.replace("to ask the secretary of state for communities and local government ", "to ask the secretary of state for communities and local government, ")
+    q = ' '.join(q.split(', ')[1:])
+    cleaned_question = q
+    return cleaned_question
+
 
 # A function that will download WPQs for a given range of dates. (NB this will crash if the date range is too wide)
 def get_wpqs_by_answered(answeredWhenFrom, answeredWhenTo, answered=None):
@@ -168,7 +201,8 @@ def update_answered_pqs(tmp = '/Users/ben/Documents/blog/UKParliament/tmp'):
     wpqs['topic'] = wpqs.heading.progress_apply(lambda x: x.split(':')[0])
 
     wpqs['year_month'] = wpqs.dateTabled.dt.to_period('M')
-    wpqs.to_csv('pqs_cleaned.csv')
+    wpqs['cleanedQuestion'] = wpqs.questionText.progress_apply(lambda x: question_cleaner(x))
+    wpqs.to_csv('pqs_cleaned.csv', index=False, index_label=False)
     print('Cleaning done. Output saved in ')
 
     return wpqs
@@ -346,7 +380,8 @@ def download_ua_pqs(tmp = '/Users/ben/Documents/blog/pqs/tmp'):
     wpqs['topic'] = wpqs.heading.progress_apply(lambda x: x.split(':')[0])
 
     wpqs['year_month'] = wpqs.dateTabled.dt.to_period('M')
-    wpqs.to_csv('ua_pqs_cleaned.csv')
+    wpqs['cleanedQuestion'] = wpqs.questionText.progress_apply(lambda x: question_cleaner(x))
+    wpqs.to_csv('ua_pqs_cleaned.csv', index=False, index_label=False)
     print('Cleaning done. Output saved in ')
 
     return wpqs
